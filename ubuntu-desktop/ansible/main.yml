@@ -1,0 +1,94 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Ensure apt cache is updated.
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Ensure correct kernel headers are installed.
+      shell: "apt-get -y install linux-headers-$(uname -r)"
+
+    # SSH daemon configuration.
+    - name: Configure SSH daemon.
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items:
+        - regexp: '^UseDNS'
+          line: 'UseDNS no'
+        - regexp: '^GSSAPIAuthentication'
+          line: 'GSSAPIAuthentication no'
+
+    # Vagrant SSH configuration.
+    - name: Configure Vagrant .ssh directory.
+      file:
+        path: /home/vagrant/.ssh
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: 0700
+
+    - name: Get Vagrant's public key.
+      get_url:
+        url: https://github.com/mitchellh/vagrant/raw/master/keys/vagrant.pub
+        dest: /home/vagrant/.ssh/authorized_keys
+        owner: vagrant
+        group: vagrant
+        mode: 0600
+
+    # Parallels tools installation.
+    - name: Mount Parallels guest additions ISO.
+      mount:
+        name: /mnt
+        src: /home/vagrant/prl-tools-lin.iso
+        opts: loop
+        state: mounted
+        fstype: iso9660
+
+    - name: Run Parallels guest additions installation.
+      command: bash /mnt/install --install-unattended-with-deps
+      changed_when: true
+
+    - name: Unmount Parallels guest additions ISO.
+      mount:
+        name: /mnt
+        src: /home/vagrant/prl-tools-lin.iso
+        state: absent
+        fstype: iso9660
+
+    - name: Delete Parallels guest additions ISO.
+      file:
+        path: /home/vagrant/prl-tools-lin.iso
+        state: absent
+
+    # Cleanup tasks.
+    - name: Remove unneeded packages.
+      apt:
+        name:
+          - ppp
+          - pppconfig
+          - pppoeconf
+          - cpp
+          - gcc
+          - g++
+          - libx11-data
+          - xauth
+          - libxmuu1
+          - libxcb1
+          - libx11-6
+          - libxext6
+          - linux-source
+        state: absent
+
+    - name: Remove unneeded packages (by regex).
+      shell: "apt-get -y remove '.*-dev$'"
+
+    - name: Clean up apt.
+      command: "{{ item }}"
+      changed_when: false
+      with_items:
+        - apt-get -y autoremove
+        - apt-get -y clean

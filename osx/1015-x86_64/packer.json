@@ -1,0 +1,32 @@
+{
+  "variables": {
+    "cloud_token": "{{ env `VAGRANT_CLOUD_TOKEN` }}",
+    "version": "0.1.0"
+  },
+  "builders": [
+    {
+      "type": "vagrant",
+      "provider": "parallels",
+      "source_path": "macinbox",
+      "box_version": "10.15.5",
+      "template": "{{ template_dir }}/Vagrantfile.tpl",
+      "add_force": true,
+      "communicator": "ssh",
+      "output_dir": "{{ template_dir }}/packer"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "{{ template_dir }}/provision.sh"
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "vagrant-cloud",
+      "box_tag": "ajw0100/osx-1015",
+      "access_token": "{{user `cloud_token`}}",
+      "version": "{{user `version`}}"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "variables": {
+    "version": "0.1.0"
+  },
+  "builders": [
+    {
+      "boot_command": [
+        "<up><wait><tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 81920,
+      "guest_os_type": "centos",
+      "http_directory": "{{ template_dir }}/http",
+      "iso_urls": [
+        "CentOS-7.8.2003-x86_64-Minimal-2003.iso",
+        "http://mirrors.mit.edu/centos/7.8.2003/isos/x86_64/CentOS-7-x86_64-Minimal-2003.iso"
+      ],
+      "iso_checksum": "sha256:659691c28a0e672558b003d223f83938f254b39875ee7559d1a4a14c79173193",
+      "output_directory": "{{ template_dir }}/packer",
+      "parallels_tools_flavor": "lin",
+      "prlctl": [
+        [
+          "set", "{{.Name}}", "--memsize", "2048"
+        ],
+        [
+          "set", "{{.Name}}", "--cpus", "2"
+        ]
+      ],
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "1800s",
+      "shutdown_command": "echo 'vagrant'|sudo -S /sbin/halt -h -p",
+      "type": "parallels-iso",
+      "vm_name": "packer-centos-782003-x86_64"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "script": "{{ template_dir }}/scripts/ansible.sh",
+      "max_retries": 3
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "{{ template_dir }}/../ansible/main.yml"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "script": "{{ template_dir }}/scripts/workstation.sh"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "script": "{{ template_dir }}/scripts/cleanup.sh"
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "output": "{{ template_dir }}/packer/builds/{{.Provider}}-centos-workstation-782003.box",
+        "type": "vagrant"
+      },
+      {
+        "type": "vagrant-cloud",
+        "box_tag": "ajw0100/centos-workstation-782003",
+        "version": "{{user `version`}}"
+      }
+    ]
+  ]
+}

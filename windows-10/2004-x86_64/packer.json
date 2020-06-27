@@ -1,0 +1,73 @@
+{
+  "variables": {
+    "version": "0.1.0"
+  },
+  "builders": [
+    {
+      "type": "parallels-iso",
+      "iso_url": "https://software-download.microsoft.com/download/pr/19041.264.200511-0456.vb_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso",
+      "iso_checksum": "sha256:F1A4F2176259167CD2C8BF83F3F5A4039753B6CC28C35AC624DA95A36E9620FC",
+      "floppy_files": [
+        "{{ template_dir }}/floppy/Autounattend.xml",
+        "{{ template_dir }}/floppy/update-windows.ps1",
+        "{{ template_dir }}/floppy/configure-winrm.ps1"
+      ],
+      "guest_os_type": "win-10",
+      "communicator": "winrm",
+      "winrm_username": "vagrant",
+      "winrm_password": "vagrant",
+      "winrm_timeout": "6h",
+      "skip_compaction": false,
+      "shutdown_command":       "shutdown /s /t 5 /f /d p:4:1 /c \"Packer Shutdown\"",
+      "parallels_tools_flavor": "win",
+      "parallels_tools_mode":   "upload",
+      "parallels_tools_guest_path": "c:/Windows/Temp/windows.iso",
+      "disk_size": 61440,
+      "prlctl": [
+        ["set", "{{.Name}}", "--startup-view",           "window"],
+        ["set", "{{.Name}}", "--memsize",                "2048"],
+        ["set", "{{.Name}}", "--cpus",                   "2"],
+        ["set", "{{.Name}}", "--smart-mount",            "off"],
+        ["set", "{{.Name}}", "--efi-boot",               "off"],
+        ["set", "{{.Name}}", "--shared-profile",         "off"],
+        ["set", "{{.Name}}", "--shared-cloud",           "off"],
+        ["set", "{{.Name}}", "--sh-app-guest-to-host",   "off"],
+        ["set", "{{.Name}}", "--sh-app-host-to-guest",   "off"]
+      ],
+      "vm_name": "eval-win10x64-enterprise"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "powershell",
+      "scripts": [
+        "{{ template_dir }}/scripts/install-guest-tools.ps1",
+        "{{ template_dir }}/scripts/enable-rdp.ps1",
+        "{{ template_dir }}/scripts/disable-hibernate.ps1",
+        "{{ template_dir }}/scripts/enable-autologin.ps1",
+        "{{ template_dir }}/scripts/enable-uac.ps1",
+        "{{ template_dir }}/scripts/no-expiration.ps1"
+      ]
+    },
+    {
+      "type": "windows-restart",
+      "restart_command": "powershell \"& {(Get-WmiObject win32_operatingsystem).LastBootUpTime > C:\\ProgramData\\lastboot.txt; Restart-Computer -force}\"",
+      "restart_check_command": "powershell -command \"& {if ((get-content C:\\ProgramData\\lastboot.txt) -eq (Get-WmiObject win32_operatingsystem).LastBootUpTime) {Write-Output 'Sleeping for 600 seconds to wait for reboot'; start-sleep 600} else {Write-Output 'Reboot complete'}}\""
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "vagrant",
+        "output": "{{ template_dir }}/packer/builds/{{.Provider}}-windows-10-2004.box",
+        "keep_input_artifact": false,
+        "vagrantfile_template": "{{ template_dir }}/Vagrantfile.tpl"
+      },
+      {
+        "type": "vagrant-cloud",
+        "box_tag": "ajw0100/windows-10-2004",
+        "version": "{{user `version`}}"
+      }
+    ]
+  ]
+}

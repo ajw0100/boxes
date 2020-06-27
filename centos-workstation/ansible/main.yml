@@ -1,0 +1,119 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Get the current kernel release.
+      command: uname -r
+      changed_when: false
+      register: kernel_release
+
+    - name: Ensure necessary packages are installed.
+      yum:
+        name:
+          - wget
+          - perl
+          - cpp
+          - gcc
+          - make
+          - bzip2
+          - kernel-headers
+          - kernel-devel
+          - "kernel-devel-{{ kernel_release.stdout }}"
+          - elfutils-libelf-devel
+          - cifs-utils
+        state: present
+
+    # Fix slow DNS.
+    - name: Fix slow DNS (adapted from Bento).
+      lineinfile:
+        dest: /etc/sysconfig/network
+        regexp: '^RES_OPTIONS'
+        line: 'RES_OPTIONS="single-request-reopen"'
+        state: present
+
+    - name: Restart network service (RHEL < 8).
+      service: name=network state=restarted
+      when: ansible_distribution_major_version < '8'
+
+    # SSH daemon configuration.
+    - name: Configure SSH daemon.
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items:
+        - { regexp: '^UseDNS', line: 'UseDNS no' }
+        - { regexp: '^GSSAPIAuthentication', line: 'GSSAPIAuthentication no' }
+
+    # Vagrant SSH configuration.
+    - name: Configure Vagrant .ssh directory.
+      file:
+        path: /home/vagrant/.ssh
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: 0700
+
+    - name: Get Vagrant's public key.
+      get_url:
+        url: https://github.com/mitchellh/vagrant/raw/master/keys/vagrant.pub
+        dest: /home/vagrant/.ssh/authorized_keys
+        owner: vagrant
+        group: vagrant
+        mode: 0600
+
+    # Parallels tools installation.
+    - name: Mount Parallels guest additions ISO.
+      mount:
+        name: /mnt
+        src: /home/vagrant/prl-tools-lin.iso
+        opts: loop
+        state: mounted
+        fstype: iso9660
+
+    - name: Run Parallels guest additions installation.
+      command: bash /mnt/install --install-unattended-with-deps
+      changed_when: true
+
+    - name: Unmount Parallels guest additions ISO.
+      mount:
+        name: /mnt
+        src: /home/vagrant/prl-tools-lin.iso
+        state: absent
+        fstype: iso9660
+
+    - name: Delete Parallels guest additions ISO.
+      file:
+        path: /home/vagrant/prl-tools-lin.iso
+        state: absent
+
+    # Cleanup tasks.
+    - name: Remove unneeded packages.
+      yum:
+        name:
+          - cpp
+          - kernel-devel
+          - kernel-headers
+        state: absent
+
+    - name: Clean up yum.
+      command: >
+        yum clean all
+        warn=false
+      changed_when: true
+
+    - name: Remove RedHat interface persistence (step 1).
+      command: >
+        rm -f /etc/udev/rules.d/70-persistent-net.rules
+        warn=false
+
+    - name: Remove RedHat interface persistence (step 2).
+      lineinfile:
+        dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+        regexp: "{{ item }}"
+        state: absent
+      with_items:
+        - '^HWADDR'
+        - '^UUID'

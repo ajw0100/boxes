@@ -1,0 +1,37 @@
+{
+  "plugins": [
+    "prettier",
+    "eslint-comments"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:prettier/recommended",
+    "plugin:eslint-comments/recommended"
+  ],
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "rules": {
+    "func-names": [
+      "error",
+      "as-needed"
+    ],
+    "no-shadow": "error",
+    "no-extra-semi": 0,
+    "prettier/prettier": [
+      "error",
+      {
+        "printWidth": 120,
+        "tabWidth": 2,
+        "singleQuote": true,
+        "trailingComma": "none",
+        "bracketSpacing": false,
+        "semi": true,
+        "useTabs": false,
+        "jsxBracketSameLine": false
+      }
+    ],
+    "eslint-comments/no-unused-disable": "error"
+  }
+}

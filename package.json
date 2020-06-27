@@ -1,0 +1,75 @@
+{
+  "author": "A.J. Welch",
+  "bugs": {
+    "url": "https://github.com/ajw0100/boxes/issues"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "dependencies": {
+  },
+  "description": "Packer/Vagrant Boxes",
+  "devDependencies": {
+    "@commitlint/cli": "^8.3.5",
+    "@commitlint/config-conventional": "^8.3.4",
+    "commitizen": "^4.1.2",
+    "conventional-changelog-cli": "^2.0.31",
+    "cz-conventional-changelog": "^3.2.0",
+    "eslint": "6.8.0",
+    "eslint-config-prettier": "6.11.0",
+    "eslint-plugin-eslint-comments": "^3.2.0",
+    "eslint-plugin-prettier": "3.1.4",
+    "git-branch-is": "^3.1.0",
+    "husky": "4.2.5",
+    "lint-staged": "^10.2.7",
+    "markdownlint-cli": "^0.23.1",
+    "micromatch": "^4.0.2",
+    "prettier": "2.0.5",
+    "replace": "^1.2.0"
+  },
+  "homepage": "https://www.supercharger.org",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "prepare-commit-msg": "exec < /dev/tty && git cz --hook || true",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "license": "MIT",
+  "name": "supercharger",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajw0100/boxes.git"
+  },
+  "private": true,
+  "scripts": {
+    "postinstall": "bundle install --path ./vendor/bundle",
+    "packer:centos-workstation:782003": "packer build -force centos-workstation/782003-x86_64/packer.json",
+    "packer:centos-workstation:822004": "packer build -force centos-workstation/822004-x86_64/packer.json",
+    "packer:ubuntu-desktop:1804": "packer build -force ubuntu-desktop/1804-x86_64/packer.json",
+    "packer:ubuntu-desktop:2004": "packer build -force ubuntu-desktop/2004-x86_64/packer.json",
+    "packer:osx:1015": "osx/1015-x86_64/macinbox.sh && packer build -force osx/1015-x86_64/packer.json",
+    "packer:windows-10:2004": "packer build -force windows-10/2004-x86_64/packer.json",
+    "lint": "lint-staged",
+    "version:centos-workstation:782003": "replace '    \\\"version\\\": \\\"\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\"' \\\"    \\\\\\\"version\\\\\\\": \\\\\\\"$npm_package_version\\\\\\\"\\\" centos-workstation/782003-x86_64/packer.json",
+    "version:centos-workstation:822004": "replace '    \\\"version\\\": \\\"\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\"' \\\"    \\\\\\\"version\\\\\\\": \\\\\\\"$npm_package_version\\\\\\\"\\\" centos-workstation/822004-x86_64/packer.json",
+    "version:ubuntu-desktop:1804": "replace '    \"version\": \"\\d+\\.\\d+\\.\\d+\"' \"    \\\"version\\\": \\\"$npm_package_version\\\"\" ubuntu-desktop/1804-x86_64/packer.json",
+    "version:ubuntu-desktop:2004": "replace '    \"version\": \"\\d+\\.\\d+\\.\\d+\"' \"    \\\"version\\\": \\\"$npm_package_version\\\"\" ubuntu-desktop/2004-x86_64/packer.json",
+    "version:linux": "yarn run version:centos-workstation:782003 && yarn run version:centos-workstation:822004 && yarn run version:ubuntu-desktop:1804 && yarn run version:ubuntu-desktop:2004",
+    "version:osx:1015": "replace '    \"version\": \"\\d+\\.\\d+\\.\\d+\"' \"    \\\"version\\\": \\\"$npm_package_version\\\"\" osx/1015-x86_64/packer.json",
+    "version:windows-10:2004": "replace '    \"version\": \"\\d+\\.\\d+\\.\\d+\"' \"    \\\"version\\\": \\\"$npm_package_version\\\"\" windows-10/2004-x86_64/packer.json",
+    "version": "conventional-changelog -p angular -i CHANGELOG.md -s && yarn run version:linux && yarn run version:osx:1015 && yarn run version:windows-10:2004 && git add -A",
+    "bump": "HUSKY_SKIP_HOOKS=1 yarn version",
+    "clean:centos-workstation": "rm -rf ./centos-workstation/*/packer",
+    "clean:ubuntu-desktop": "rm -rf ./ubuntu-desktop/*/packer",
+    "clean:linux": "yarn run clean:centos-workstation && yarn run clean:ubuntu-desktop",
+    "clean:osx": "rm -rf osx/*/build osx/*/packer && (vagrant box remove macinbox --all || true)",
+    "clean:windows-10": "rm -rf ./windows-10/*/packer",
+    "clean:ruby": "rm -rf .bundle vendor",
+    "clean:node": "rm -rf node_modules",
+    "clean": "yarn run clean:packer && yarn run clean:linux && yarn run clean:osx && yarn run clean:windows-10 && yarn run clean:ruby && yarn run clean:node"
+  },
+  "version": "0.1.0"
+}
